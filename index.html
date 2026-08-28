@@ -11,16 +11,16 @@
   :root{
   --bg: #14161a; --panel: #1b1e24; --line: #2c3038; --ink: #e7e6e1; --ink-dim: #8b8f98; --amber: #e0a83e;
   --chrome-bg: #f4f2ec; --chrome-border: #ddd9cc; --chrome-text: #2c2c2a;
-  --chrome-text-secondary: #4a4944; --chrome-text-dim: #8a8880; --chrome-accent: #2c4a6e;
+  --chrome-text-secondary: #4a4944; --chrome-text-dim: #5f5e57; --chrome-accent: #2c4a6e;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--chrome-bg); color: var(--chrome-text); font-family: 'Karla', sans-serif; }
 
-.source-bar { background: var(--chrome-bg); border-top: 1px solid var(--chrome-border); padding: 10px 32px; font-family: 'Karla', sans-serif; font-size: 11.5px; color: var(--chrome-text-dim); line-height: 1.6; }
+.source-bar { border-top: 1px solid var(--chrome-border); padding-top: 14px; margin-top: 20px; font-family: 'Karla', sans-serif; font-size: 11px; color: var(--chrome-text-dim); line-height: 1.6; }
 .source-bar a { color: var(--chrome-accent); text-decoration: none; }
 .source-bar strong { color: var(--chrome-text); }
 
-header { padding: 18px 32px 12px; border-bottom: 1px solid var(--chrome-border); background: var(--chrome-bg); }
+header { padding: 32px 32px 16px; border-bottom: 1px solid var(--chrome-border); background: var(--chrome-bg); }
 h1 { font-family: 'Libre Baskerville', serif; font-weight: 700; font-size: 22px; margin: 0 0 4px; color: var(--chrome-text); }
 header .subtitle { font-family: 'Karla', sans-serif; font-size: 13px; color: var(--chrome-text-dim); }
 
@@ -44,25 +44,25 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
 
 .year-summary { background: rgba(44,74,110,0.08); border: 1px solid rgba(44,74,110,0.25); border-radius: 4px; padding: 12px 14px; margin-bottom: 16px; }
 .year-summary .big { font-family: 'Libre Baskerville', serif; font-weight: 700; font-size: 26px; color: var(--chrome-accent); line-height: 1.1; }
-.year-summary .sub { font-family: 'Karla', sans-serif; font-size: 11.5px; color: var(--chrome-text-dim); margin-top: 4px; line-height: 1.5; }
+.year-summary .sub { font-family: 'Karla', sans-serif; font-size: 13px; color: var(--chrome-text-dim); margin-top: 4px; line-height: 1.5; }
 
 .legend { margin-bottom: 16px; }
-.select-hint { font-family: 'Karla', sans-serif; font-size: 10.5px; color: var(--chrome-text-dim); text-align: center; margin-bottom: 12px; line-height: 1.6; }
+.select-hint { font-family: 'Karla', sans-serif; font-size: 12.5px; color: var(--chrome-text-dim); text-align: center; margin-bottom: 12px; line-height: 1.6; }
 .select-hint .action { font-style: italic; }
 #legendRows { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; }
-.legend-title { font-family: 'Karla', sans-serif; font-weight: 500; font-size: 11px; color: var(--chrome-text-dim); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px; }
-.legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-family: 'Karla', sans-serif; font-size: 13px; color: var(--chrome-text-secondary); cursor: pointer; text-transform: capitalize; }
+.legend-title { font-family: 'Karla', sans-serif; font-weight: 500; font-size: 12.5px; color: var(--chrome-text-dim); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px; }
+.legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-family: 'Karla', sans-serif; font-size: 14.5px; color: var(--chrome-text-secondary); cursor: pointer; text-transform: capitalize; }
 .legend-row.dimmed { opacity: 0.35; }
-.swatch { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
 .detail-panel { border-top: 1px solid var(--chrome-border); padding-top: 14px; margin-top: 4px; }
 .detail-empty { font-family:'Karla', sans-serif; font-size:12px; color: var(--chrome-text-dim); line-height:1.6; }
 .detail-city { font-family:'Libre Baskerville', serif; font-weight: 700; font-size: 16px; color: var(--chrome-text); margin-bottom:2px; }
-.detail-meta { font-family:'Karla', sans-serif; font-size: 11.5px; color: var(--chrome-text-dim); margin-bottom: 10px; text-transform: capitalize; }
+.detail-meta { font-family:'Karla', sans-serif; font-size: 13px; color: var(--chrome-text-dim); margin-bottom: 10px; text-transform: capitalize; }
 .detail-claim { font-family: 'Karla', sans-serif; font-size: 13.5px; line-height: 1.6; color: var(--chrome-text-secondary); background: rgba(0,0,0,0.03); border-left: 2px solid var(--chrome-accent); padding: 8px 10px; }
 
-.map-stage { position: relative; }
-.map-stage svg, .map-stage canvas { position: absolute; top: 0; left: 0; width: 100%; height: auto; }
+.map-stage { position: relative; width: 100%; aspect-ratio: 1200 / 740; }
+.map-stage svg, .map-stage canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 #dotCanvas { pointer-events: auto; }
 .loading-note { position: absolute; bottom: 12px; left: 12px; font-family: 'Karla', sans-serif; font-size: 11px; color: var(--ink-dim); background: rgba(20,22,26,0.85); padding: 4px 10px; border-radius: 3px; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
 .loading-note.show { opacity: 1; }
@@ -99,6 +99,7 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
   <div class="map-col">
     <div class="map-controls">
       <select id="stateFilter"><option value="">All states</option></select>
+      <select id="yearFilter"></select>
       <button id="resetZoom">&#8634; Reset zoom</button>
     </div>
     <div class="map-stage">
@@ -140,12 +141,12 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
     <div class="detail-panel" id="detailPanel">
       <div class="detail-empty"></div>
     </div>
-  </div>
-</div>
 
-<div class="source-bar">
-  <strong>Source:</strong> Crowd Counting Consortium, Harvard Kennedy School Nonviolent Action Lab and University of Connecticut. <a href="https://ash.harvard.edu/programs/crowd-counting-consortium/" target="_blank">ash.harvard.edu/programs/crowd-counting-consortium</a>
-  <br>Data collection methods were expanded in 2021; figures from 2017&ndash;2020 are not directly comparable to later years.
+    <div class="source-bar">
+      <strong>Source:</strong> Crowd Counting Consortium, Harvard Kennedy School Nonviolent Action Lab and University of Connecticut. <a href="https://ash.harvard.edu/programs/crowd-counting-consortium/" target="_blank">ash.harvard.edu/programs/crowd-counting-consortium</a>
+      <br>Data collection methods were expanded in 2021; figures from 2017&ndash;2020 are not directly comparable to later years.
+    </div>
+  </div>
 </div>
 
 <div class="tooltip" id="tooltip"></div>
@@ -322,6 +323,23 @@ d3.select("#stateFilter").selectAll("option.state-opt")
   .data(stateList).join("option").attr("class","state-opt")
   .attr("value", d => d).text(d => d);
 
+const yearOptions = d3.range(2017, 2027);
+d3.select("#yearFilter").selectAll("option")
+  .data(yearOptions).join("option")
+  .attr("value", d => d).text(d => d);
+
+function selectYear(year) {
+  activeYear = year;
+  d3.select("#yearSlider").property("value", activeYear);
+  d3.select("#yearFilter").property("value", activeYear);
+  d3.select("#yearVal").text(activeYear);
+  render();
+}
+
+d3.select("#yearFilter").on("change", function() {
+  selectYear(+this.value);
+});
+
 d3.select("#stateFilter").on("change", function() {
   selectState(this.value);
 });
@@ -366,12 +384,11 @@ g.append("text").attr("class","inset-label").attr("x",prBox.x+4).attr("y",prBox.
 g.append("rect").attr("class","inset-box").attr("x",guBox.x).attr("y",guBox.y).attr("width",guBox.w).attr("height",guBox.h);
 g.append("text").attr("class","inset-label").attr("x",guBox.x+4).attr("y",guBox.y-4).text("Guam");
 
+d3.select("#yearFilter").property("value", activeYear);
 render();
 
 d3.select("#yearSlider").on("input", function() {
-  activeYear = +this.value;
-  d3.select("#yearVal").text(activeYear);
-  render();
+  selectYear(+this.value);
 });
 
 d3.select("#playBtn").on("click", function() {
@@ -381,10 +398,7 @@ d3.select("#playBtn").on("click", function() {
     playTimer = setInterval(() => {
       let next = activeYear + 1;
       if (next > 2026) next = 2017;
-      activeYear = next;
-      d3.select("#yearSlider").property("value", activeYear);
-      d3.select("#yearVal").text(activeYear);
-      render();
+      selectYear(next);
     }, 1400);
   } else {
     clearInterval(playTimer);
