@@ -76,6 +76,7 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
 .loading-note.show { opacity: 1; }
 .debug-status { position: absolute; top: 12px; right: 12px; max-width: 340px; font-family: 'Karla', sans-serif; font-size: 11px; color: #ffd166; background: rgba(20,22,26,0.92); border: 1px solid #ffd166; padding: 6px 10px; border-radius: 3px; z-index: 30; white-space: pre-wrap; }
 .state { fill: #262a32; stroke: #565b66; stroke-width: 1.1; transition: fill 0.15s ease, stroke-width 0.15s ease, opacity 0.2s ease; cursor: pointer; }
+.territory { fill: #262a32; stroke: #565b66; stroke-width: 1.1; }
 .state:hover { fill: #e0a83e; stroke-width: 1.2; }
 .state.dimmed { opacity: 0.35; }
 .state.focused { fill: #262a32; stroke: #e0a83e; stroke-width: 1.4; }
@@ -552,11 +553,11 @@ g.append("g").selectAll("path").data(statesGeo).join("path").attr("class", "stat
   });
 
 g.append("rect").attr("class","inset-box").attr("x",prBox.x).attr("y",prBox.y).attr("width",prBox.w).attr("height",prBox.h);
-g.append("path").attr("class","state").attr("d", prPath(territoriesGeo["630"].geometry));
-g.append("path").attr("class","state").attr("d", prPath(territoriesGeo["850"].geometry));
+g.append("path").attr("class","territory").attr("d", prPath(territoriesGeo["630"].geometry));
+g.append("path").attr("class","territory").attr("d", prPath(territoriesGeo["850"].geometry));
 g.append("text").attr("class","inset-label").attr("x",prBox.x+4).attr("y",prBox.y-4).text("Puerto Rico / USVI");
 g.append("rect").attr("class","inset-box").attr("x",guBox.x).attr("y",guBox.y).attr("width",guBox.w).attr("height",guBox.h);
-g.append("path").attr("class","state").attr("d", guPath(territoriesGeo["316"].geometry));
+g.append("path").attr("class","territory").attr("d", guPath(territoriesGeo["316"].geometry));
 g.append("text").attr("class","inset-label").attr("x",guBox.x+4).attr("y",guBox.y-4).text("Guam");
 
 d3.select("#yearFilter").property("value", activeYear);
@@ -609,15 +610,19 @@ async function render() {
     filtered = filtered.filter(d => d.tags && d.tags.split(";").map(s => s.trim().toLowerCase()).includes(activeMinorTopic.toLowerCase()));
   }
   if (activeState) filtered = filtered.filter(d => d.state === activeState);
-  filtered = filtered.filter(d => projectPoint(d) !== null);
 
-  currentFiltered = filtered;
+  // The table lists every matching event regardless of coordinates — it
+  // only needs city/date/text, not a mappable point. Only the actual map
+  // (dots + hit-testing) requires a location that can be projected.
+  renderEventList(filtered);
+
+  const mappable = filtered.filter(d => projectPoint(d) !== null);
+  currentFiltered = mappable;
   currentQuadtree = d3.quadtree()
     .x(d => projectPoint(d)[0])
     .y(d => projectPoint(d)[1])
-    .addAll(filtered);
+    .addAll(mappable);
   drawDots();
-  renderEventList(filtered);
 }
 
 const EVENT_LIST_PAGE_SIZE = 25;
