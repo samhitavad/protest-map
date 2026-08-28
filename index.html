@@ -104,9 +104,9 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
 
 .event-list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
 .event-list-summary { flex: 1; min-width: 220px; }
-.event-list-count { font-family: 'Karla', sans-serif; font-size: 13px; color: var(--chrome-text); margin-bottom: 4px; }
-.event-list-filters { font-family: 'Karla', sans-serif; font-size: 11.5px; color: var(--chrome-text-dim); }
-.event-list-filters strong { color: var(--chrome-text-secondary); }
+.event-list-count { font-family: 'Karla', sans-serif; font-weight: 700; font-size: 20px; color: var(--chrome-text); margin-bottom: 6px; }
+.event-list-filters { font-family: 'Karla', sans-serif; font-weight: 500; font-size: 14px; color: var(--chrome-text-secondary); }
+.event-list-filters strong { color: var(--chrome-text); }
 .event-list-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .event-list-controls button { font-family: 'Karla', sans-serif; font-size: 12px; background: var(--chrome-bg-light); border: 1px solid var(--chrome-border); color: var(--chrome-text); padding: 5px 10px; border-radius: 3px; cursor: pointer; }
 .event-list-controls button:hover:not(:disabled) { border-color: var(--chrome-accent); color: var(--chrome-accent); }
@@ -495,15 +495,18 @@ d3.select("#stateFilter").on("change", function() {
 });
 
 function selectState(stateAbbr) {
-  activeState = stateAbbr;
-  d3.select("#stateFilter").property("value", stateAbbr);
-  updateStateFocusStyle();
-  // Zoom first, immediately, independent of the (async, data-fetch-dependent)
-  // render() call below — this used to run after render() was kicked off,
-  // which meant the zoom could get tangled up with an in-flight data fetch.
-  if (activeState) zoomToState(activeState);
-  else applyZoomTransform(d3.zoomIdentity);
-  render();
+  debugLog(`selectState("${stateAbbr}") called — entering function.`);
+  try {
+    activeState = stateAbbr;
+    d3.select("#stateFilter").property("value", stateAbbr);
+    updateStateFocusStyle();
+    debugLog(`selectState: past updateStateFocusStyle(). activeState = "${activeState}". Calling zoom next...`);
+    if (activeState) zoomToState(activeState);
+    else applyZoomTransform(d3.zoomIdentity);
+    render();
+  } catch (err) {
+    debugLog(`selectState THREW AN ERROR: ${err.message}\n${err.stack ? err.stack.split("\n").slice(0,4).join("\n") : ""}`);
+  }
 }
 
 function updateStateFocusStyle() {
