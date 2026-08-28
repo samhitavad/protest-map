@@ -168,7 +168,7 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
     <div class="select-hint">Each dot represents a protest.<br><span class="action">Click a dot to see its location, size, and description.</span></div>
 
     <div class="legend">
-      <div class="legend-title">Colored by topic</div>
+      <div class="legend-title">Filter by topic</div>
       <div id="legendRows"></div>
       <div class="minor-topic-wrap">
         <select id="minorTopicFilter"><option value="">Other topics</option></select>
@@ -216,11 +216,11 @@ const usTopology = {"type":"Topology","bbox":[-179.14733999999999,-14.5525489999
 ;
 
 const issueColors = {
-  "foreign affairs": "#e0a83e", "racism": "#d97757", "presidency": "#5aa39a",
-  "education": "#a8cf98", "policing": "#7d8ec9", "democracy": "#8f7fd1",
-  "immigration": "#d97fa0", "healthcare": "#6fb3d9", "economy": "#c9a86a",
-  "labor": "#b8935c", "environment": "#4f9d6e", "military": "#8a8fa6",
-  "guns": "#a65d5d", "other": "#6b6f78"
+  "foreign affairs": "#d16060", "racism": "#d19460", "presidency": "#d1c860",
+  "education": "#a5d160", "policing": "#72d160", "democracy": "#60d183",
+  "immigration": "#60d1b7", "healthcare": "#60b7d1", "economy": "#6083d1",
+  "labor": "#7260d1", "environment": "#a560d1", "military": "#d160c8",
+  "guns": "#d16094", "other": "#6b6f78"
 };
 
 function exactCount(year, state, topic) {
@@ -407,11 +407,24 @@ canvas.addEventListener("mouseleave", () => {
 canvas.addEventListener("click", (event) => {
   const [px, py] = canvasPointFromEvent(event);
   const found = findNearestPoint(px, py);
-  if (!found) return;
-  selectedPoint = found;
-  showDetail(found);
-  showPopup(event, found);
-  drawDots();
+  if (found) {
+    selectedPoint = found;
+    showDetail(found);
+    showPopup(event, found);
+    drawDots();
+    return;
+  }
+  // No dot was clicked — the canvas sits on top of the state map in the same
+  // space, so without this fallback, clicking a state anywhere away from a
+  // dot would silently do nothing. Invert the click back to a real lon/lat
+  // and check which state polygon actually contains it.
+  const lonLat = projection.invert([px, py]);
+  if (!lonLat) return;
+  const hitState = statesGeo.find(f => d3.geoContains(f, lonLat));
+  if (hitState) {
+    const abbr = nameToAbbrev[hitState.properties.name];
+    if (abbr) selectState(abbr);
+  }
 });
 
 const zoom = d3.zoom().scaleExtent([1, 24]).on("zoom", (event) => {
@@ -452,10 +465,13 @@ d3.select("#stateFilter").on("change", function() {
 function selectState(stateAbbr) {
   activeState = stateAbbr;
   d3.select("#stateFilter").property("value", stateAbbr);
-  render();
   updateStateFocusStyle();
+  // Zoom first, immediately, independent of the (async, data-fetch-dependent)
+  // render() call below — this used to run after render() was kicked off,
+  // which meant the zoom could get tangled up with an in-flight data fetch.
   if (activeState) zoomToState(activeState);
   else svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+  render();
 }
 
 function updateStateFocusStyle() {
@@ -639,8 +655,13 @@ function zoomToState(stateAbbr) {
   // Zoom to the state's actual geographic boundary, not just where sampled
   // points happen to fall — robust even for states with few sampled events.
   const stateName = stateAbbrevToName[stateAbbr];
-  const feature = statesGeo.find(f => f.properties.name === stateName);
-  if (!feature) return;
+  let feature = statesGeo.find(f => f.properties.name === stateName);
+  if (!feature && stateName) {
+    // Fallback: case-insensitive match, in case of any stray formatting
+    // difference between our name list and the map data's own names.
+    feature = statesGeo.find(f => f.properties.name.toLowerCase() === stateName.toLowerCase());
+  }
+  if (!feature) { console.warn("zoomToState: no matching state feature for", stateAbbr, stateName); return; }
   const [[x0, y0], [x1, y1]] = path.bounds(feature);
   const dx = x1 - x0 || 40, dy = y1 - y0 || 40;
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
@@ -664,6 +685,7 @@ function showPopup(event, d) {
   if (left + 260 > rect.width) left = event.clientX - rect.left - 276;
   d3.select("#pcCity").text(d.city);
   d3.select("#pcMeta").html(`<li>${d.date}</li><li>${d.type || "event"}</li><li>${d.issue}</li><li class="size-row">${d.size}</li>`);
+  d3.select("#pcClaim").text(claimText);
   d3.select("#mapPopup").style("left", left + "px").style("top", top + "px").classed("show", true);
 }
 d3.select("#popupClose").on("click", () => d3.select("#mapPopup").classed("show", false));
