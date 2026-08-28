@@ -468,7 +468,7 @@ function applyZoomTransform(transform) {
   debugLog(`applyZoomTransform called.\nRequested: ${transform.toString()}\ng element's actual transform attribute right now: ${gAttrNow}`);
 }
 
-d3.select("#resetZoom").on("click", () => applyZoomTransform(d3.zoomIdentity));
+d3.select("#resetZoom").on("click", () => selectState(""));
 
 d3.select("#stateFilter").selectAll("option.state-opt")
   .data(stateList).join("option").attr("class","state-opt")
