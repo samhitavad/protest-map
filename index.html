@@ -74,6 +74,7 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
 #dotCanvas { pointer-events: auto; }
 .loading-note { position: absolute; bottom: 12px; left: 12px; font-family: 'Karla', sans-serif; font-size: 11px; color: var(--ink-dim); background: rgba(20,22,26,0.85); padding: 4px 10px; border-radius: 3px; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
 .loading-note.show { opacity: 1; }
+.debug-status { position: absolute; top: 12px; right: 12px; max-width: 340px; font-family: 'Karla', sans-serif; font-size: 11px; color: #ffd166; background: rgba(20,22,26,0.92); border: 1px solid #ffd166; padding: 6px 10px; border-radius: 3px; z-index: 30; white-space: pre-wrap; }
 .state { fill: #262a32; stroke: #565b66; stroke-width: 1.1; transition: fill 0.15s ease, stroke-width 0.15s ease, opacity 0.2s ease; cursor: pointer; }
 .state:hover { fill: #e0a83e; stroke-width: 1.2; }
 .state.dimmed { opacity: 0.35; }
@@ -102,7 +103,10 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
 .event-list-more { font-family: 'Karla', sans-serif; font-size: 12px; color: var(--chrome-text-dim); font-style: italic; margin-top: 12px; text-align: center; }
 
 .event-list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
-.event-list-toolbar .event-list-sub { margin-bottom: 0; flex: 1; min-width: 200px; }
+.event-list-summary { flex: 1; min-width: 220px; }
+.event-list-count { font-family: 'Karla', sans-serif; font-size: 13px; color: var(--chrome-text); margin-bottom: 4px; }
+.event-list-filters { font-family: 'Karla', sans-serif; font-size: 11.5px; color: var(--chrome-text-dim); }
+.event-list-filters strong { color: var(--chrome-text-secondary); }
 .event-list-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .event-list-controls button { font-family: 'Karla', sans-serif; font-size: 12px; background: var(--chrome-bg-light); border: 1px solid var(--chrome-border); color: var(--chrome-text); padding: 5px 10px; border-radius: 3px; cursor: pointer; }
 .event-list-controls button:hover:not(:disabled) { border-color: var(--chrome-accent); color: var(--chrome-accent); }
@@ -144,6 +148,7 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
       <canvas id="dotCanvas"></canvas>
     </div>
     <div class="loading-note" id="loadingNote">Loading year data…</div>
+    <div class="debug-status" id="debugStatus">zoom debug: waiting for state selection…</div>
 
     <div class="map-popup" id="mapPopup">
       <button class="map-popup-close" id="popupClose">&times;</button>
@@ -225,7 +230,7 @@ const issueColors = {
   "education": "#a8d14a", "policing": "#1e8449", "democracy": "#6a5fd1",
   "immigration": "#d14aa8", "healthcare": "#4a90d1", "economy": "#8a5a2e",
   "labor": "#20c9c0", "environment": "#4a7a2e", "military": "#7a7a8a",
-  "guns": "#a13f3f", "other": "#6b6f78"
+  "guns": "#a13f3f", "other": "#c4c4ca"
 };
 
 function exactCount(year, state, topic) {
@@ -440,7 +445,29 @@ const zoom = d3.zoom().scaleExtent([1, 24]).on("zoom", (event) => {
 });
 svg.call(zoom);
 canvas.style.pointerEvents = "auto";
-d3.select("#resetZoom").on("click", () => svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity));
+
+// Applies a zoom transform directly and immediately — no dependency on
+// D3's transition/animation-frame timing, which is a class of behavior
+// I cannot fully verify from this environment. This guarantees the
+// visual state updates synchronously and correctly every time; zoom.transform
+// (called without a transition) still syncs D3's own internal zoom state so
+// manual drag/scroll interaction continues correctly afterward.
+function debugLog(msg) {
+  d3.select("#debugStatus").text(msg);
+  console.log(msg);
+}
+
+function applyZoomTransform(transform) {
+  currentZoomTransform = transform;
+  g.attr("transform", transform);
+  d3.select("#resetZoom").classed("show", transform.k > 1.01);
+  drawDots();
+  zoom.transform(svg, transform);
+  const gAttrNow = g.attr("transform");
+  debugLog(`applyZoomTransform called.\nRequested: ${transform.toString()}\ng element's actual transform attribute right now: ${gAttrNow}`);
+}
+
+d3.select("#resetZoom").on("click", () => applyZoomTransform(d3.zoomIdentity));
 
 d3.select("#stateFilter").selectAll("option.state-opt")
   .data(stateList).join("option").attr("class","state-opt")
@@ -475,7 +502,7 @@ function selectState(stateAbbr) {
   // render() call below — this used to run after render() was kicked off,
   // which meant the zoom could get tangled up with an in-flight data fetch.
   if (activeState) zoomToState(activeState);
-  else svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+  else applyZoomTransform(d3.zoomIdentity);
   render();
 }
 
@@ -619,7 +646,7 @@ function renderEventListPage() {
   if (sorted.length === 0) {
     const msg = term
       ? `No events match "${eventSearchTerm}" within the current filters.`
-      : "No events match the current filters. Apply filters above (state, year, topic) to browse events.";
+      : "No events match the current filters. Apply filters above to browse events.";
     container.html(`<div class="event-list-empty">${msg}</div>`);
     return;
   }
@@ -629,14 +656,17 @@ function renderEventListPage() {
   const start = eventListPage * EVENT_LIST_PAGE_SIZE;
   const shown = sorted.slice(start, start + EVENT_LIST_PAGE_SIZE);
 
-  const filterParts = [activeYear];
-  if (activeState) filterParts.push(stateAbbrevToName[activeState] || activeState);
-  if (activeIssueFilters.size > 0) filterParts.push([...activeIssueFilters].join(", "));
-  else if (activeMinorTopic) filterParts.push(activeMinorTopic);
+  const locationLabel = activeState ? (stateAbbrevToName[activeState] || activeState) : "All states";
+  const topicLabel = activeIssueFilters.size > 0
+    ? [...activeIssueFilters].join(", ")
+    : (activeMinorTopic || "All topics");
 
   let html = `
     <div class="event-list-toolbar">
-      <div class="event-list-sub">${filterParts.join(" · ")} — ${sorted.length.toLocaleString()} matching event${sorted.length === 1 ? "" : "s"}. Apply filters above (state, year, topic) to narrow results.</div>
+      <div class="event-list-summary">
+        <div class="event-list-count">${sorted.length.toLocaleString()} matching event${sorted.length === 1 ? "" : "s"}</div>
+        <div class="event-list-filters"><strong>Filters applied:</strong> Year: ${activeYear} &middot; Location: ${locationLabel} &middot; Topics: ${topicLabel}</div>
+      </div>
       <div class="event-list-controls">
         <button id="elPrev" ${eventListPage === 0 ? "disabled" : ""}>&#8249;</button>
         <span class="event-list-pageinfo">Page ${eventListPage + 1} of ${totalPages}</span>
@@ -674,6 +704,7 @@ function zoomToPoint(d) {
 function zoomToState(stateAbbr) {
   // Zoom to the state's actual geographic boundary, not just where sampled
   // points happen to fall — robust even for states with few sampled events.
+  debugLog(`zoomToState("${stateAbbr}") called.`);
   const stateName = stateAbbrevToName[stateAbbr];
   let feature = statesGeo.find(f => f.properties.name === stateName);
   if (!feature && stateName) {
@@ -681,7 +712,7 @@ function zoomToState(stateAbbr) {
     // difference between our name list and the map data's own names.
     feature = statesGeo.find(f => f.properties.name.toLowerCase() === stateName.toLowerCase());
   }
-  if (!feature) { console.warn("zoomToState: no matching state feature for", stateAbbr, stateName); return; }
+  if (!feature) { debugLog(`zoomToState: NO MATCHING FEATURE for "${stateAbbr}" (mapped name: "${stateName}"). statesGeo has ${statesGeo.length} features.`); return; }
   const [[x0, y0], [x1, y1]] = path.bounds(feature);
   const dx = x1 - x0 || 40, dy = y1 - y0 || 40;
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
@@ -689,10 +720,8 @@ function zoomToState(stateAbbr) {
   const tx = width / 2 - scale * cx;
   const ty = height / 2 - scale * cy;
   const newTransform = d3.zoomIdentity.translate(tx, ty).scale(scale);
-  console.log("zoomToState:", stateAbbr, "-> scale", scale.toFixed(2), "tx", tx.toFixed(0), "ty", ty.toFixed(0));
-  svg.transition().duration(650).call(zoom.transform, newTransform)
-    .on("end", () => console.log("zoomToState: transition ended, currentZoomTransform.k =", currentZoomTransform.k))
-    .on("interrupt", () => console.warn("zoomToState: transition was interrupted before completing"));
+  debugLog(`zoomToState: feature found (${feature.properties.name}). bounds=[${x0.toFixed(0)},${y0.toFixed(0)}]-[${x1.toFixed(0)},${y1.toFixed(0)}]. scale=${scale.toFixed(2)}`);
+  applyZoomTransform(newTransform);
 }
 
 function showDetail(d) {
