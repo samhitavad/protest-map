@@ -86,7 +86,10 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
 
 .event-list-section { background: var(--chrome-bg); border-top: 1px solid var(--chrome-border); padding: 32px 32px 48px; }
 .event-list-outer { max-width: 900px; margin: 0 auto; }
-.event-list-header { font-family: 'Libre Baskerville', serif; font-weight: 700; font-size: 19px; color: var(--chrome-text); margin-bottom: 16px; }
+.event-list-header-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.event-list-header { font-family: 'Libre Baskerville', serif; font-weight: 700; font-size: 19px; color: var(--chrome-text); margin-bottom: 0; }
+.event-search-input { font-family: 'Karla', sans-serif; font-size: 13px; background: var(--chrome-bg-light); border: 1px solid var(--chrome-border); color: var(--chrome-text); padding: 7px 12px; border-radius: 4px; width: 240px; }
+.event-search-input:focus { outline: none; border-color: var(--chrome-accent); }
 .event-list-inner { border: 1px solid var(--chrome-border); border-radius: 6px; padding: 24px 28px; background: #ffffff; }
 .event-list-empty { font-family: 'Karla', sans-serif; font-size: 13.5px; color: var(--chrome-text-dim); text-align: center; padding: 24px 0; }
 .event-list-sub { font-family: 'Karla', sans-serif; font-size: 12px; color: var(--chrome-text-dim); margin-bottom: 16px; }
@@ -94,7 +97,6 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
 .event-table th { text-align: left; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--chrome-text-dim); border-bottom: 2px solid var(--chrome-border); padding: 0 12px 10px 0; }
 .event-table td { padding: 10px 12px 10px 0; border-bottom: 1px solid rgba(0,0,0,0.07); color: var(--chrome-text-secondary); vertical-align: top; line-height: 1.5; }
 .event-table tr:last-child td { border-bottom: none; }
-.event-table tr:hover td { background: rgba(44,74,110,0.03); }
 .event-table td.date-col { white-space: nowrap; color: var(--chrome-text-dim); font-size: 12px; }
 .event-table td.claim-col { max-width: 420px; }
 .event-list-more { font-family: 'Karla', sans-serif; font-size: 12px; color: var(--chrome-text-dim); font-style: italic; margin-top: 12px; text-align: center; }
@@ -188,7 +190,10 @@ select, #resetZoom { font-family: 'Karla', sans-serif; font-size: 12px; backgrou
 
 <div class="event-list-section">
   <div class="event-list-outer">
-    <div class="event-list-header">Browse individual events</div>
+    <div class="event-list-header-row">
+      <div class="event-list-header">Browse individual events</div>
+      <input type="text" id="eventSearch" class="event-search-input" placeholder="Search city or description…">
+    </div>
     <div class="event-list-inner" id="eventListInner">
       <div class="event-list-empty">Loading events…</div>
     </div>
@@ -216,11 +221,11 @@ const usTopology = {"type":"Topology","bbox":[-179.14733999999999,-14.5525489999
 ;
 
 const issueColors = {
-  "foreign affairs": "#d16060", "racism": "#d19460", "presidency": "#d1c860",
-  "education": "#a5d160", "policing": "#72d160", "democracy": "#60d183",
-  "immigration": "#60d1b7", "healthcare": "#60b7d1", "economy": "#6083d1",
-  "labor": "#7260d1", "environment": "#a560d1", "military": "#d160c8",
-  "guns": "#d16094", "other": "#6b6f78"
+  "foreign affairs": "#d1666a", "racism": "#f2802e", "presidency": "#f0dc6e",
+  "education": "#a8d14a", "policing": "#1e8449", "democracy": "#6a5fd1",
+  "immigration": "#d14aa8", "healthcare": "#4a90d1", "economy": "#8a5a2e",
+  "labor": "#20c9c0", "environment": "#4a7a2e", "military": "#7a7a8a",
+  "guns": "#a13f3f", "other": "#6b6f78"
 };
 
 function exactCount(year, state, topic) {
@@ -346,7 +351,7 @@ function drawDots() {
     if (!p) continue;
     ctx.beginPath();
     ctx.arc(p[0], p[1], r, 0, Math.PI * 2);
-    ctx.fillStyle = issueColors[d.issue] || issueColors.other;
+    ctx.fillStyle = activeMinorTopic ? issueColors.other : (issueColors[d.issue] || issueColors.other);
     ctx.globalAlpha = (d === hoveredPoint) ? 1 : 0.7;
     ctx.fill();
     if (d === selectedPoint) {
@@ -588,19 +593,34 @@ async function render() {
 const EVENT_LIST_PAGE_SIZE = 25;
 let currentEventListSorted = [];
 let eventListPage = 0;
+let eventSearchTerm = "";
 
 function renderEventList(filtered) {
   currentEventListSorted = [...filtered].sort((a, b) => a.date.localeCompare(b.date));
   eventListPage = 0;
+  eventSearchTerm = "";
+  d3.select("#eventSearch").property("value", "");
   renderEventListPage();
 }
 
+d3.select("#eventSearch").on("input", function() {
+  eventSearchTerm = this.value;
+  eventListPage = 0;
+  renderEventListPage();
+});
+
 function renderEventListPage() {
   const container = d3.select("#eventListInner");
-  const sorted = currentEventListSorted;
+  const term = eventSearchTerm.trim().toLowerCase();
+  const sorted = term
+    ? currentEventListSorted.filter(d => d.city.toLowerCase().includes(term) || (d.claim || "").toLowerCase().includes(term))
+    : currentEventListSorted;
 
   if (sorted.length === 0) {
-    container.html(`<div class="event-list-empty">No events match the current filters. Apply filters above (state, year, topic) to browse events.</div>`);
+    const msg = term
+      ? `No events match "${eventSearchTerm}" within the current filters.`
+      : "No events match the current filters. Apply filters above (state, year, topic) to browse events.";
+    container.html(`<div class="event-list-empty">${msg}</div>`);
     return;
   }
 
@@ -668,7 +688,11 @@ function zoomToState(stateAbbr) {
   const scale = Math.max(1, Math.min(10, 0.8 / Math.max(dx / width, dy / height)));
   const tx = width / 2 - scale * cx;
   const ty = height / 2 - scale * cy;
-  svg.transition().duration(650).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+  const newTransform = d3.zoomIdentity.translate(tx, ty).scale(scale);
+  console.log("zoomToState:", stateAbbr, "-> scale", scale.toFixed(2), "tx", tx.toFixed(0), "ty", ty.toFixed(0));
+  svg.transition().duration(650).call(zoom.transform, newTransform)
+    .on("end", () => console.log("zoomToState: transition ended, currentZoomTransform.k =", currentZoomTransform.k))
+    .on("interrupt", () => console.warn("zoomToState: transition was interrupted before completing"));
 }
 
 function showDetail(d) {
