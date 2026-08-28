@@ -1,4 +1,4 @@
-# Protestor: The Backbone of a Democracy
+# Protests: Drivers of a Democracy
 
 An interactive D3.js map of every one of the ~267,000 real US protest events from 2017–March
 2026, sourced from the Crowd Counting Consortium (Harvard Kennedy School Nonviolent Action Lab
